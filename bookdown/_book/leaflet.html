@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+<head>
+
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>4 Leaflet | Guidebook</title>
+  <meta name="description" content="4 Leaflet | Guidebook" />
+  <meta name="generator" content="bookdown 0.21 and GitBook 2.6.7" />
+
+  <meta property="og:title" content="4 Leaflet | Guidebook" />
+  <meta property="og:type" content="book" />
+  
+  
+  
+  
+
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="4 Leaflet | Guidebook" />
+  
+  
+  
+
+<meta name="author" content="Sophie Fung" />
+
+
+
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  
+  
+<link rel="prev" href="creating-networks.html"/>
+
+<script src="libs/jquery-2.2.3/jquery.min.js"></script>
+<link href="libs/gitbook-2.6.7/css/style.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-table.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-bookdown.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-highlight.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-search.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-fontsettings.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-clipboard.css" rel="stylesheet" />
+
+
+
+
+
+
+
+
+
+<script src="libs/accessible-code-block-0.0.1/empty-anchor.js"></script>
+
+
+
+</head>
+
+<body>
+
+
+
+  <div class="book without-animation with-summary font-size-2 font-family-1" data-basepath=".">
+
+    <div class="book-summary">
+      <nav role="navigation">
+
+<ul class="summary">
+<li class="chapter" data-level="1" data-path="index.html"><a href="index.html"><i class="fa fa-check"></i><b>1</b> Introduction and Data Description</a></li>
+<li class="chapter" data-level="2" data-path="intro.html"><a href="intro.html"><i class="fa fa-check"></i><b>2</b> Data Processing</a><ul>
+<li class="chapter" data-level="2.1" data-path="intro.html"><a href="intro.html#bike-journey-data"><i class="fa fa-check"></i><b>2.1</b> Bike Journey data</a></li>
+<li class="chapter" data-level="2.2" data-path="intro.html"><a href="intro.html#station-data"><i class="fa fa-check"></i><b>2.2</b> Station data</a></li>
+</ul></li>
+<li class="chapter" data-level="3" data-path="creating-networks.html"><a href="creating-networks.html"><i class="fa fa-check"></i><b>3</b> Creating networks</a><ul>
+<li class="chapter" data-level="3.1" data-path="creating-networks.html"><a href="creating-networks.html#igraph-object"><i class="fa fa-check"></i><b>3.1</b> Igraph object</a></li>
+</ul></li>
+<li class="chapter" data-level="4" data-path="leaflet.html"><a href="leaflet.html"><i class="fa fa-check"></i><b>4</b> Leaflet</a><ul>
+<li class="chapter" data-level="4.1" data-path="leaflet.html"><a href="leaflet.html#palettes"><i class="fa fa-check"></i><b>4.1</b> Palettes</a></li>
+<li class="chapter" data-level="4.2" data-path="leaflet.html"><a href="leaflet.html#mapping"><i class="fa fa-check"></i><b>4.2</b> Mapping</a></li>
+</ul></li>
+</ul>
+
+      </nav>
+    </div>
+
+    <div class="book-body">
+      <div class="body-inner">
+        <div class="book-header" role="navigation">
+          <h1>
+            <i class="fa fa-circle-o-notch fa-spin"></i><a href="./">Guidebook</a>
+          </h1>
+        </div>
+
+        <div class="page-wrapper" tabindex="-1" role="main">
+          <div class="page-inner">
+
+            <section class="normal" id="section-">
+<div id="leaflet" class="section level1">
+<h1><span class="header-section-number">4</span> Leaflet</h1>
+<p>The final step is plotting our networks onto an interactive map!</p>
+<div id="palettes" class="section level2">
+<h2><span class="header-section-number">4.1</span> Palettes</h2>
+<p>We will need to create color schemes for our vertices</p>
+<pre><code>pal1 &lt;- colorBin(
+  palette = &quot;YlOrRd&quot;,
+  domain = vert$deg,
+  bins = 8 )
+#pal for vert(G2)
+pal2 &lt;- colorBin(
+  palette = &quot;YlOrRd&quot;,
+  domain = vert_G2$deg,
+  bins = 8 )
+#pal for vert(G3)
+pal3 &lt;- colorBin(
+  palette = &quot;YlOrRd&quot;,
+  domain = vert_G3$deg,
+  bins = 8 )
+#pal for vert(G4)
+pal4 &lt;- colorBin(
+  palette = &quot;YlOrRd&quot;,
+  domain = vert_G4$deg,
+  bins = 8 )</code></pre>
+<p>We also create popups for the map</p>
+<pre><code>popup_stationName &lt;- station %&gt;%
+  dplyr::select(&quot;Station.Id&quot;,&#39;StationName&#39;) %&gt;%
+  dplyr::rename(&#39;Station Name&#39; = StationName) %&gt;%
+  popupTable()
+</code></pre>
+</div>
+<div id="mapping" class="section level2">
+<h2><span class="header-section-number">4.2</span> Mapping</h2>
+<pre><code>leaflet(vert) %&gt;%
+  #basemaps
+  addProviderTiles(providers$CartoDB.Positron, group = &quot;CartoDB&quot;)%&gt;%
+  addTiles(group = &quot;OSM (default)&quot;) %&gt;%
+  
+  #Weekday 2019
+  #lines of most travelled stations
+  addPolylines(data= edges, weight= network_extract$edges$n/50, 
+               color =  &#39;purple&#39;, group = &quot;weekdays2019&quot;) %&gt;%
+               
+  #dots of the docks
+  addCircles(data=vert, radius=10, weight=network_extract$vertices$deg/10,
+             opacity=1,fillOpacity = 1,color = ~pal1(vert$deg), group = &quot;weekdays2019&quot;,
+             popup = popup_stationName) %&gt;%
+             
+  #Weekend 2019
+  hideGroup(&quot;weekends2019&quot;)%&gt;%
+  addPolylines(data= edges_G2, weight= network_extract_G2$edges$n/100, 
+               color = &#39;purple&#39;, group = &quot;weekends2019&quot;) %&gt;%
+  addCircles(data=vert_G2, radius=10, weight=network_extract_G2$vertices$deg/3,
+             opacity=1,fillOpacity = 1,color = ~pal2(vert_G2$deg), group = &quot;weekends2019&quot;,
+             popup = popup_stationName) %&gt;%
+             
+  #Weekday 2020
+  hideGroup(&quot;weekdays2020&quot;)%&gt;%
+  addPolylines(data= edges_G3, weight= network_extract_G3$edges$n/100, 
+               color = &#39;purple&#39;, group = &quot;weekdays2020&quot;) %&gt;%
+  addCircles(data=vert_G3, radius=10, weight=network_extract_G3$vertices$deg/5,
+             opacity=1,fillOpacity = 1,color = ~pal3(vert_G3$deg), group = &quot;weekdays2020&quot;,
+             popup = popup_stationName) %&gt;%
+             
+  #Weekend 2020
+  hideGroup(&quot;weekends2020&quot;)%&gt;%
+  addPolylines(data= edges_G4, weight= network_extract_G4$edges$n/100, 
+               color = &#39;purple&#39;, group = &quot;weekends2020&quot;) %&gt;%
+  addCircles(data=vert_G4, radius=10, weight=network_extract_G4$vertices$deg/5,
+             opacity=1,fillOpacity = 1,color = ~pal4(vert_G4$deg), group = &quot;weekends2020&quot;,
+             popup = popup_stationName) %&gt;%
+             
+  # add a legend
+  #wkday 2019
+  addLegend(pal = pal1, values = ~&#39;deg&#39;, group = &quot;weekdays2019&quot;, 
+            position =&quot;bottomleft&quot;, title = &quot;Total Degree&quot;,
+            opacity = 0.9) %&gt;%
+  #wkend 2019
+  addLegend(pal = pal2, values = ~&#39;deg&#39;, group = &quot;weekends2019&quot;, 
+            position =&quot;bottomleft&quot;, title = &quot;Total Degree&quot;,
+            opacity = 0.9) %&gt;%
+  #wkday 2020
+  addLegend(pal = pal3, values = ~&#39;deg&#39;, group = &quot;weekdays2020&quot;, 
+            position =&quot;bottomleft&quot;, title = &quot;Total Degree&quot;,
+            opacity = 0.9) %&gt;%
+  #wkend 2020
+  addLegend(pal = pal4, values = ~&#39;deg&#39;, group = &quot;weekends2020&quot;, 
+            position =&quot;bottomleft&quot;, title = &quot;Total Degree&quot;,
+            opacity = 0.9) %&gt;%
+            
+  # specify layers control
+  addLayersControl(
+    baseGroups = c(&quot;CartoDB&quot;,&quot;OSM (default)&quot;,&quot;Carto (Positron)&quot;),
+    overlayGroups = c(&quot;weekdays2019&quot;,&quot;weekends2019&quot;,&quot;weekdays2020&quot;,&quot;weekends2020&quot;),
+    options = layersControlOptions(collapsed = F) )
+</code></pre>
+
+</div>
+</div>
+            </section>
+
+          </div>
+        </div>
+      </div>
+<a href="creating-networks.html" class="navigation navigation-prev navigation-unique" aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
+
+    </div>
+  </div>
+<script src="libs/gitbook-2.6.7/js/app.min.js"></script>
+<script src="libs/gitbook-2.6.7/js/lunr.js"></script>
+<script src="libs/gitbook-2.6.7/js/clipboard.min.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-search.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-sharing.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-fontsettings.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-bookdown.js"></script>
+<script src="libs/gitbook-2.6.7/js/jquery.highlight.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-clipboard.js"></script>
+<script>
+gitbook.require(["gitbook"], function(gitbook) {
+gitbook.start({
+"sharing": {
+"github": false,
+"facebook": true,
+"twitter": true,
+"linkedin": false,
+"weibo": false,
+"instapaper": false,
+"vk": false,
+"all": ["facebook", "twitter", "linkedin", "weibo", "instapaper"]
+},
+"fontsettings": {
+"theme": "white",
+"family": "sans",
+"size": 2
+},
+"edit": {
+"link": null,
+"text": null
+},
+"history": {
+"link": null,
+"text": null
+},
+"view": {
+"link": null,
+"text": null
+},
+"download": null,
+"toc": {
+"collapse": "subsection"
+}
+});
+});
+</script>
+
+</body>
+
+</html>

@@ -1,0 +1,113 @@
+# Data Processing {#intro}
+
+## Bike Journey data
+First, we need to merge the data together to a csv
+I used Python to merge and filter the data
+
+I followed a [script](https://www.freecodecamp.org/news/how-to-combine-multiple-csv-files-with-8-lines-of-code-265183e0854/) found online to merge files with the same schema into one file
+
+After merging, we need to format the dates to machine readable format 
+```
+df2["End_Date"] = pd.to_datetime(df2["End_Date"], format = "%d/%m/%Y %H:%M")
+df2["Start_Date"] = pd.to_datetime(df2["Start_Date"], format = "%d/%m/%Y %H:%M")
+
+```
+
+Then we need to filter the dates out
+```
+df2[(df2['End_Date']>'2019-08-01') & (df2['End_Date']<'2019-09-01')]
+```
+
+Lastly, output to csv
+```
+df3.to_csv("filtered.csv")
+```
+
+Now we have the monthly report for both August 2019 and 2020
+
+
+## Station data
+Load the libraries:
+```
+library(dplyr)
+library(dlookr)
+library(tidyr)
+library(lubridate)
+```
+
+In R, we need to stick the coordinates of the stations to the journey data using right join
+Load the datasets:
+```
+station <- read.csv("stations.csv")
+aug_2019 <- read.csv("filtered_aug2019.csv")
+aug_2020<- read.csv("filtered_aug2020.csv")
+```
+
+
+Now, we first stick the coordinates of the destination data, drop unnecessary columns, and rename the coordinates to distinguish between origin and destination data, then filter away the rows with 'NA' in the rental IDs and export as `.csv`
+
+We do the same to the 2020 data as well
+```
+aug_2019_end <- 
+  right_join(aug_2019,station, c("EndStation_Id" = "Station.Id"))
+
+aug_2019_end <- aug_2019_end %>%
+  select(-c(EndStation_Name,StartStation_Name,StationName,Easting,Northing))
+
+aug_2019_end <- aug_2019_end %>%
+  relocate(longitude, latitude, .after = EndStation_Id)
+
+aug_2019_end <- aug_2019_end%>%
+  rename(
+    d_longitude = longitude,
+    d_latitude = latitude
+  )
+aug_2019_cor <- 
+  right_join(aug_2019_end,station, c("StartStation_Id" = "Station.Id")) %>%
+  select(-c(StationName,Easting,Northing)) %>%
+  rename(
+    o_longitude = longitude,
+    o_latitude = latitude
+  )
+
+aug_2019_cor<-
+  aug_2019_cor %>% filter(!is.na(Rental_Id))
+
+write.csv(aug_2019_cor,"aug_2019_cordinates.csv", row.names = FALSE)
+```
+
+We now have to get divide the monthly data by weekdays and weekends, in the end we will have 4 datasets
+```
+#get weekdays
+aug_2019_weekday <- aug_2019_cor %>%
+  filter(Start_Date!=End_Date)%>%
+  mutate(weekday = wday(Start_Date,label = TRUE)) %>%
+  filter(!wday(Start_Date) %in% c(1,7))
+
+
+#get weekends
+aug_2019_weekend <- aug_2019_cor %>%
+  filter(Start_Date!=End_Date)%>%
+  mutate(weekday = wday(Start_Date,label = TRUE)) %>%
+  filter(wday(Start_Date) %in% c(1,7))
+```
+
+After that, we will now count the occurrence of paired trips (ie. the number of trips from 'point A' to 'point B'), we will need to do this for all 4 datasets
+```
+#now have to get the trips per point pair
+pair_aug2019_weekday <- aug_2019_weekday %>%
+  group_by(StartStation_Id, EndStation_Id) %>%
+  mutate(n=n()) %>% 
+  arrange(desc(n), .by_group=FALSE) %>%
+  distinct(StartStation_Id, EndStation_Id,n, .keep_all=TRUE) %>%
+  relocate(StartStation_Id,EndStation_Id, n,.before=X)
+
+pair_aug2019_weekend <- aug_2019_weekend %>%
+  group_by(StartStation_Id, EndStation_Id) %>%
+  mutate(n=n()) %>%
+  arrange(desc(n), .by_group=FALSE) %>%
+  distinct(StartStation_Id, EndStation_Id,n, .keep_all=TRUE) %>%
+  relocate(StartStation_Id,EndStation_Id, n,.before=X)
+
+```
+Yikes now the preparation work is done, we will move on to computing the network!

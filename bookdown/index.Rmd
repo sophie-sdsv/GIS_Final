@@ -1,0 +1,24 @@
+---
+title: "Guidebook"
+author: "Sophie Fung"
+site: bookdown::bookdown_site
+documentclass: book
+output:
+  bookdown::gitbook: default
+  #bookdown::pdf_book: default
+---
+
+# Introduction and Data Description
+
+This document will guide you through the steps to produce a network analysis in R to examine the changes of Santander bikes' usage between the monthly period of August 2019 and August 2020.
+
+List data involved:
+
+1. Bike journey data
+  [Here](https://cycling.data.tfl.gov.uk/)
+  + August 2019
+  + August 2020
+2. Bike station locations
+  [Data here](https://www.whatdotheyknow.com/request/request_for_location_of_santande#incoming-1572474)
+
+<!-- If you need PDF output, uncomment bookdown::pdf_book above in YAML. You will need a LaTeX installation, e.g., https://yihui.name/tinytex/ -->

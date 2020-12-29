@@ -1,0 +1,102 @@
+# Leaflet
+
+The final step is plotting our networks onto an interactive map!
+
+## Palettes
+We will need to create color schemes for our vertices
+```
+pal1 <- colorBin(
+  palette = "YlOrRd",
+  domain = vert$deg,
+  bins = 8 )
+#pal for vert(G2)
+pal2 <- colorBin(
+  palette = "YlOrRd",
+  domain = vert_G2$deg,
+  bins = 8 )
+#pal for vert(G3)
+pal3 <- colorBin(
+  palette = "YlOrRd",
+  domain = vert_G3$deg,
+  bins = 8 )
+#pal for vert(G4)
+pal4 <- colorBin(
+  palette = "YlOrRd",
+  domain = vert_G4$deg,
+  bins = 8 )
+```
+We also create popups for the map
+```
+popup_stationName <- station %>%
+  dplyr::select("Station.Id",'StationName') %>%
+  dplyr::rename('Station Name' = StationName) %>%
+  popupTable()
+
+```
+## Mapping
+
+```
+leaflet(vert) %>%
+  #basemaps
+  addProviderTiles(providers$CartoDB.Positron, group = "CartoDB")%>%
+  addTiles(group = "OSM (default)") %>%
+  
+  #Weekday 2019
+  #lines of most travelled stations
+  addPolylines(data= edges, weight= network_extract$edges$n/50, 
+               color =  'purple', group = "weekdays2019") %>%
+               
+  #dots of the docks
+  addCircles(data=vert, radius=10, weight=network_extract$vertices$deg/10,
+             opacity=1,fillOpacity = 1,color = ~pal1(vert$deg), group = "weekdays2019",
+             popup = popup_stationName) %>%
+             
+  #Weekend 2019
+  hideGroup("weekends2019")%>%
+  addPolylines(data= edges_G2, weight= network_extract_G2$edges$n/100, 
+               color = 'purple', group = "weekends2019") %>%
+  addCircles(data=vert_G2, radius=10, weight=network_extract_G2$vertices$deg/3,
+             opacity=1,fillOpacity = 1,color = ~pal2(vert_G2$deg), group = "weekends2019",
+             popup = popup_stationName) %>%
+             
+  #Weekday 2020
+  hideGroup("weekdays2020")%>%
+  addPolylines(data= edges_G3, weight= network_extract_G3$edges$n/100, 
+               color = 'purple', group = "weekdays2020") %>%
+  addCircles(data=vert_G3, radius=10, weight=network_extract_G3$vertices$deg/5,
+             opacity=1,fillOpacity = 1,color = ~pal3(vert_G3$deg), group = "weekdays2020",
+             popup = popup_stationName) %>%
+             
+  #Weekend 2020
+  hideGroup("weekends2020")%>%
+  addPolylines(data= edges_G4, weight= network_extract_G4$edges$n/100, 
+               color = 'purple', group = "weekends2020") %>%
+  addCircles(data=vert_G4, radius=10, weight=network_extract_G4$vertices$deg/5,
+             opacity=1,fillOpacity = 1,color = ~pal4(vert_G4$deg), group = "weekends2020",
+             popup = popup_stationName) %>%
+             
+  # add a legend
+  #wkday 2019
+  addLegend(pal = pal1, values = ~'deg', group = "weekdays2019", 
+            position ="bottomleft", title = "Total Degree",
+            opacity = 0.9) %>%
+  #wkend 2019
+  addLegend(pal = pal2, values = ~'deg', group = "weekends2019", 
+            position ="bottomleft", title = "Total Degree",
+            opacity = 0.9) %>%
+  #wkday 2020
+  addLegend(pal = pal3, values = ~'deg', group = "weekdays2020", 
+            position ="bottomleft", title = "Total Degree",
+            opacity = 0.9) %>%
+  #wkend 2020
+  addLegend(pal = pal4, values = ~'deg', group = "weekends2020", 
+            position ="bottomleft", title = "Total Degree",
+            opacity = 0.9) %>%
+            
+  # specify layers control
+  addLayersControl(
+    baseGroups = c("CartoDB","OSM (default)","Carto (Positron)"),
+    overlayGroups = c("weekdays2019","weekends2019","weekdays2020","weekends2020"),
+    options = layersControlOptions(collapsed = F) )
+
+```

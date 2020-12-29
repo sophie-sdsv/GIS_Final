@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+<head>
+
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>3 Creating networks | Guidebook</title>
+  <meta name="description" content="3 Creating networks | Guidebook" />
+  <meta name="generator" content="bookdown 0.21 and GitBook 2.6.7" />
+
+  <meta property="og:title" content="3 Creating networks | Guidebook" />
+  <meta property="og:type" content="book" />
+  
+  
+  
+  
+
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="3 Creating networks | Guidebook" />
+  
+  
+  
+
+<meta name="author" content="Sophie Fung" />
+
+
+
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  
+  
+<link rel="prev" href="intro.html"/>
+<link rel="next" href="leaflet.html"/>
+<script src="libs/jquery-2.2.3/jquery.min.js"></script>
+<link href="libs/gitbook-2.6.7/css/style.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-table.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-bookdown.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-highlight.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-search.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-fontsettings.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-clipboard.css" rel="stylesheet" />
+
+
+
+
+
+
+
+
+
+<script src="libs/accessible-code-block-0.0.1/empty-anchor.js"></script>
+
+
+
+</head>
+
+<body>
+
+
+
+  <div class="book without-animation with-summary font-size-2 font-family-1" data-basepath=".">
+
+    <div class="book-summary">
+      <nav role="navigation">
+
+<ul class="summary">
+<li class="chapter" data-level="1" data-path="index.html"><a href="index.html"><i class="fa fa-check"></i><b>1</b> Introduction and Data Description</a></li>
+<li class="chapter" data-level="2" data-path="intro.html"><a href="intro.html"><i class="fa fa-check"></i><b>2</b> Data Processing</a><ul>
+<li class="chapter" data-level="2.1" data-path="intro.html"><a href="intro.html#bike-journey-data"><i class="fa fa-check"></i><b>2.1</b> Bike Journey data</a></li>
+<li class="chapter" data-level="2.2" data-path="intro.html"><a href="intro.html#station-data"><i class="fa fa-check"></i><b>2.2</b> Station data</a></li>
+</ul></li>
+<li class="chapter" data-level="3" data-path="creating-networks.html"><a href="creating-networks.html"><i class="fa fa-check"></i><b>3</b> Creating networks</a><ul>
+<li class="chapter" data-level="3.1" data-path="creating-networks.html"><a href="creating-networks.html#igraph-object"><i class="fa fa-check"></i><b>3.1</b> Igraph object</a></li>
+</ul></li>
+<li class="chapter" data-level="4" data-path="leaflet.html"><a href="leaflet.html"><i class="fa fa-check"></i><b>4</b> Leaflet</a><ul>
+<li class="chapter" data-level="4.1" data-path="leaflet.html"><a href="leaflet.html#palettes"><i class="fa fa-check"></i><b>4.1</b> Palettes</a></li>
+<li class="chapter" data-level="4.2" data-path="leaflet.html"><a href="leaflet.html#mapping"><i class="fa fa-check"></i><b>4.2</b> Mapping</a></li>
+</ul></li>
+</ul>
+
+      </nav>
+    </div>
+
+    <div class="book-body">
+      <div class="body-inner">
+        <div class="book-header" role="navigation">
+          <h1>
+            <i class="fa fa-circle-o-notch fa-spin"></i><a href="./">Guidebook</a>
+          </h1>
+        </div>
+
+        <div class="page-wrapper" tabindex="-1" role="main">
+          <div class="page-inner">
+
+            <section class="normal" id="section-">
+<div id="creating-networks" class="section level1">
+<h1><span class="header-section-number">3</span> Creating networks</h1>
+<p>We will be using the <code>igraph</code> package to compute the networks, after that we will extract its contents so that the network can be plotted onto a interactive map <code>leaflet</code>. 4 network objects will be produced: Weekdays 2019, 2020 and weekends 2019, 2020</p>
+<div id="igraph-object" class="section level2">
+<h2><span class="header-section-number">3.1</span> Igraph object</h2>
+<p>Loading libraries…</p>
+<pre><code>library(spatstat)
+library(sp)
+library(sf)
+library(tmaptools)
+library(stringr)
+library(stplanr)
+library(tidyr)
+library(dplyr)
+library(igraph)
+library(leaflet)
+library(leafpop)
+library(grDevices)
+library(colorspace)</code></pre>
+<p>First, we need to reduce the station dataset, <code>latitude</code> and <code>longitude</code> are already in EPSG:4326 format so we do not need to reproject it</p>
+<pre><code>staion_cord &lt;- data.frame(&quot;Staion&quot;= station$Station.Id, &quot;lat&quot;=station$latitude,&quot;lon&quot;=station$longitude)
+</code></pre>
+<p>Next we extract some things from the paired trip dataset, and filter out loop trips (ie. start station = end station), we will also limit the flow amount to above 20 (ie. at least 20 trips between the 2 stations), do this for all 4 datasets</p>
+<pre><code>inter_mvmt_net_2019_wkday_reduced &lt;- pair_aug2019_weekday %&gt;%
+  select(StartStation_Id,EndStation_Id,n) %&gt;%
+  filter(StartStation_Id!=EndStation_Id) %&gt;%
+  filter(n&gt;20)</code></pre>
+<p>Convert to igpaph object:</p>
+<pre><code>G1 &lt;- graph.data.frame(inter_mvmt_net_2019_wkday_reduced, directed=T, vertices = staion_cord)
+</code></pre>
+<p>After all 4 networks are created, we will stick the degree information for all vertices, then extract the vertices and edges information</p>
+<pre><code># append degree information
+V(G1)$deg &lt;- degree(G1, mode = &quot;all&quot;)
+network_extract &lt;-get.data.frame(G1, &quot;both&quot;)
+vert&lt;- network_extract$vertices
+coordinates(vert) &lt;- ~ lon + lat
+
+#edges are the lines connecting the stations, we will extract them as SpatialLine objects for plotting
+edges&lt;-network_extract$edges
+edges&lt;-lapply(1:nrow(edges), function(i) {
+  as(rbind(vert[vert$name == edges[i, &quot;from&quot;], ],
+           vert[vert$name == edges[i, &quot;to&quot;], ]),
+     &quot;SpatialLines&quot;)
+})
+
+for (i in seq_along(edges)) {
+  edges[[i]] &lt;- spChFIDs(edges[[i]], as.character(i))
+}
+
+edges &lt;- do.call(rbind, edges)</code></pre>
+<p>Now we have 4 vertices, 4 edges, and 4 network extract datasets, we can add them to the map now!</p>
+
+</div>
+</div>
+            </section>
+
+          </div>
+        </div>
+      </div>
+<a href="intro.html" class="navigation navigation-prev " aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
+<a href="leaflet.html" class="navigation navigation-next " aria-label="Next page"><i class="fa fa-angle-right"></i></a>
+    </div>
+  </div>
+<script src="libs/gitbook-2.6.7/js/app.min.js"></script>
+<script src="libs/gitbook-2.6.7/js/lunr.js"></script>
+<script src="libs/gitbook-2.6.7/js/clipboard.min.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-search.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-sharing.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-fontsettings.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-bookdown.js"></script>
+<script src="libs/gitbook-2.6.7/js/jquery.highlight.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-clipboard.js"></script>
+<script>
+gitbook.require(["gitbook"], function(gitbook) {
+gitbook.start({
+"sharing": {
+"github": false,
+"facebook": true,
+"twitter": true,
+"linkedin": false,
+"weibo": false,
+"instapaper": false,
+"vk": false,
+"all": ["facebook", "twitter", "linkedin", "weibo", "instapaper"]
+},
+"fontsettings": {
+"theme": "white",
+"family": "sans",
+"size": 2
+},
+"edit": {
+"link": null,
+"text": null
+},
+"history": {
+"link": null,
+"text": null
+},
+"view": {
+"link": null,
+"text": null
+},
+"download": null,
+"toc": {
+"collapse": "subsection"
+}
+});
+});
+</script>
+
+</body>
+
+</html>

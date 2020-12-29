@@ -1,0 +1,63 @@
+# Creating networks
+We will be using the `igraph` package to compute the networks, after that we will extract its contents so that the network can be plotted onto a interactive map `leaflet`. 4 network objects will be produced: Weekdays 2019, 2020 and weekends 2019, 2020
+
+## Igraph object
+Loading libraries...
+```
+library(spatstat)
+library(sp)
+library(sf)
+library(tmaptools)
+library(stringr)
+library(stplanr)
+library(tidyr)
+library(dplyr)
+library(igraph)
+library(leaflet)
+library(leafpop)
+library(grDevices)
+library(colorspace)
+```
+First, we need to reduce the station dataset, `latitude` and `longitude` are already in EPSG:4326 format so we do not need to reproject it
+```
+staion_cord <- data.frame("Staion"= station$Station.Id, "lat"=station$latitude,"lon"=station$longitude)
+
+```
+Next we extract some things from the paired trip dataset, and filter out loop trips (ie. start station = end station), we will also limit the flow amount to above 20 (ie. at least 20 trips between the 2 stations), do this for all 4 datasets
+
+```
+inter_mvmt_net_2019_wkday_reduced <- pair_aug2019_weekday %>%
+  select(StartStation_Id,EndStation_Id,n) %>%
+  filter(StartStation_Id!=EndStation_Id) %>%
+  filter(n>20)
+```
+Convert to igpaph object:
+```
+G1 <- graph.data.frame(inter_mvmt_net_2019_wkday_reduced, directed=T, vertices = staion_cord)
+
+```
+After all 4 networks are created, we will stick the degree information for all vertices, then extract the vertices and edges information
+
+```
+# append degree information
+V(G1)$deg <- degree(G1, mode = "all")
+network_extract <-get.data.frame(G1, "both")
+vert<- network_extract$vertices
+coordinates(vert) <- ~ lon + lat
+
+#edges are the lines connecting the stations, we will extract them as SpatialLine objects for plotting
+edges<-network_extract$edges
+edges<-lapply(1:nrow(edges), function(i) {
+  as(rbind(vert[vert$name == edges[i, "from"], ],
+           vert[vert$name == edges[i, "to"], ]),
+     "SpatialLines")
+})
+
+for (i in seq_along(edges)) {
+  edges[[i]] <- spChFIDs(edges[[i]], as.character(i))
+}
+
+edges <- do.call(rbind, edges)
+```
+
+Now we have 4 vertices, 4 edges, and 4 network extract datasets, we can add them to the map now!
